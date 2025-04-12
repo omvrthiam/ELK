@@ -1,0 +1,53 @@
+- name: Install Kibana
+  apt:
+    name: kibana
+    state: present
+
+- name: Configure Kibana to listen on all interfaces
+  lineinfile:
+    path: /etc/kibana/kibana.yml
+    regexp: '^server.host:'
+    line: 'server.host: {{ip_address}}'
+    create: yes
+
+- name: Enable and start kibana
+  systemd:
+    name: kibana
+    enabled: yes
+    state: started
+
+
+- name: Install nginx
+  apt:
+    name: nginx
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Generate hashed password for Kibana admin
+  command: openssl passwd -apr1 {{ramdom_password}}
+  register: kibana_admin_password
+
+- name: Ensure htpasswd.users file exists
+  file:
+    path: /etc/nginx/htpasswd.users
+    state: touch
+
+
+
+- name: Ensure Kibana admin entry is in htpasswd.users
+  lineinfile:
+    path: /etc/nginx/htpasswd.users
+    line: "kibanaadmin:{{ kibana_admin_password.stdout }}"
+    state: present
+
+- name: Create Nginx configuration file from template
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/sites-available/{{domain}}.conf
+
+- name: Link Nginx configuration to sites-enabled
+  file:
+    src: /etc/nginx/sites-available/{{domain}}.conf
+    dest: /etc/nginx/sites-enabled/{{domain}}.conf
+    state: link
+  notify: Restart nginx
