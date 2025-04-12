@@ -1,0 +1,22 @@
+- name: Install Logstash
+  apt:
+    name: logstash
+    state: present
+    update_cache: yes
+
+- name: Enable and start logstash
+  systemd:
+    name: logstash
+    enabled: yes
+    state: started
+
+- name: Add beats file
+  template:
+    src: 02-beats-input.conf.j2
+    dest: /etc/logstash/conf.d/02-beats-input.conf
+
+- name: Add beats file
+  template:
+    src: output.conf.j2
+    dest: /etc/logstash/conf.d/30-elasticsearch-output.conf
+  notify: Restart logstash
