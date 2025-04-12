@@ -1,0 +1,7 @@
+- name: Install ELK Stack
+  hosts: elk
+  become: true
+  roles:
+    - elastic
+    - kibana
+    - logstash
